@@ -1,101 +1,195 @@
-import Image from "next/image";
+'use client';
+
+import { useState } from 'react';
+import { useChat } from '@ai-sdk/react';
+import DAGVisualization from './components/DAGVisualization';
+import type { DAGData, DAGEdge } from './models/dag';
+import { HandlePosition } from './models/dag';
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [dagData, setDagData] = useState<DAGData | null>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  // 前端日志工具
+  const logger = {
+    info: (msg: string, data?: unknown) => {
+      console.log(`%c[INFO] ${msg}`, 'color: #0ea5e9; font-weight: bold;');
+      if (data) console.log('%c📦 数据:', 'color: #0ea5e9;', data);
+    },
+    success: (msg: string, data?: unknown) => {
+      console.log(`%c[SUCCESS] ${msg}`, 'color: #10b981; font-weight: bold;');
+      if (data) console.log('%c✅ 数据:', 'color: #10b981;', data);
+    },
+    warn: (msg: string, data?: unknown) => {
+      console.log(`%c[WARNING] ${msg}`, 'color: #f59e0b; font-weight: bold;');
+      if (data) console.log('%c⚠️ 数据:', 'color: #f59e0b;', data);
+    },
+    error: (msg: string, data?: unknown) => {
+      console.log(`%c[ERROR] ${msg}`, 'color: #ef4444; font-weight: bold;');
+      if (data) console.log('%c❌ 错误:', 'color: #ef4444;', data);
+    },
+    debug: (msg: string, data?: unknown) => {
+      console.log(`%c[DEBUG] ${msg}`, 'color: #8b5cf6; font-weight: bold;');
+      if (data) console.log('%c🔍 数据:', 'color: #8b5cf6;', data);
+    }
+  };
+
+  // 使用useChat钩子，处理聊天和工具调用
+  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
+    api: '/api/analyze',
+    initialInput: '帮我定一下3月15号的机票',
+    onFinish: (message) => {
+      // 处理工具调用结果
+      logger.info(`📨 消息完成: ${message.id}`);
+      
+      // 检查消息的parts属性中是否有工具调用
+      if (message.parts) {
+        logger.debug(`消息包含 ${message.parts.length} 个部分`, message.parts);
+        
+        for (const part of message.parts) {
+          logger.debug(`处理消息部分类型: ${part.type}`);
+          
+          if (part.type === 'tool-invocation' && 
+              part.toolInvocation && 
+              part.toolInvocation.toolName === 'generateDAG') {
+            
+            logger.success('🎯 找到generateDAG工具调用!');
+            logger.debug('完整工具调用对象', part.toolInvocation);
+            
+            // 使用args属性而不是input属性
+            if (part.toolInvocation.args) {
+              logger.debug('工具参数', part.toolInvocation.args);
+              
+              try {
+                // 获取dagStructure参数
+                const dagStructure = part.toolInvocation.args.dagStructure;
+                logger.debug('原始DAG结构数据', dagStructure);
+                
+                // 直接使用对象，不再需要JSON解析
+                if (dagStructure) {
+                  // 处理边，确保有sourceHandle和targetHandle
+                  const parsedData = dagStructure as DAGData;
+                  if (parsedData.edges) {
+                    parsedData.edges = parsedData.edges.map((edge: DAGEdge) => {
+                      const enhancedEdge = {
+                        ...edge,
+                        sourceHandle: edge.sourceHandle || HandlePosition.BOTTOM,  // 默认使用底部位置作为源
+                        targetHandle: edge.targetHandle || HandlePosition.TOP,     // 默认使用顶部位置作为目标
+                      };
+                      logger.debug(`边 ${edge.id} 处理完成`, enhancedEdge);
+                      return enhancedEdge;
+                    });
+                    
+                    logger.success('🎨 DAG数据处理完成，准备更新视图');
+                    logger.debug('最终DAG数据', parsedData);
+                    setDagData(parsedData);
+                  } else {
+                    logger.warn('DAG数据没有edges属性或为空');
+                  }
+                } else {
+                  logger.warn('dagStructure为空');
+                }
+              } catch (error) {
+                logger.error('解析DAG数据失败', error);
+              }
+            } else {
+              logger.warn('工具调用缺少args属性', part.toolInvocation);
+            }
+            break;
+          }
+        }
+      } else {
+        logger.warn('消息没有parts属性', message);
+      }
+    },
+  });
+
+  return (
+    <main className="flex flex-col h-screen w-full overflow-hidden">
+      {/* 标题栏 */}
+      <header className="bg-white dark:bg-gray-800 shadow-sm py-3 px-6">
+        <h1 className="text-2xl font-bold text-center">任务 DAG 可视化工具</h1>
+      </header>
+      
+      {/* 主体内容区 - 使用flex-1自动填充剩余空间 */}
+      <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
+        {/* 左侧：DAG可视化 - 占据更大空间 */}
+        <div className="w-full md:w-2/3 h-full overflow-hidden p-4">
+          <div className="w-full h-full bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+            {dagData ? (
+              <div className="h-full w-full">
+                <DAGVisualization dagData={dagData} />
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-full text-gray-500">
+                请输入任务描述，生成DAG可视化
+              </div>
+            )}
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+        
+        {/* 右侧：聊天界面 */}
+        <div className="w-full md:w-1/3 h-full p-4 flex flex-col">
+          <div className="flex flex-col h-full w-full bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+            {/* 消息显示区域 */}
+            <div className="flex-grow overflow-y-auto p-4 space-y-4">
+              {messages.map(message => (
+                <div
+                  key={message.id}
+                  className={`p-3 rounded-lg ${
+                    message.role === 'user'
+                      ? 'bg-blue-100 dark:bg-blue-900 ml-4'
+                      : 'bg-gray-100 dark:bg-gray-700 mr-4'
+                  }`}
+                >
+                  <div className="font-semibold mb-1">
+                    {message.role === 'user' ? '用户:' : 'AI:'}
+                  </div>
+                  <div className="whitespace-pre-wrap text-sm">{message.content}</div>
+                  
+                  {/* 更紧凑的消息详情 */}
+                  {message.role === 'assistant' && (
+                    <details className="mt-2 text-xs text-gray-500">
+                      <summary>消息详情</summary>
+                      <div className="mt-1 max-h-40 overflow-y-auto">
+                        <pre className="text-xs whitespace-pre-wrap">
+                          {JSON.stringify(message, null, 2)}
+                        </pre>
+                      </div>
+                    </details>
+                  )}
+                </div>
+              ))}
+              
+              {/* 加载状态指示器 */}
+              {isLoading && (
+                <div className="flex justify-center items-center py-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500" />
+                </div>
+              )}
+            </div>
+            
+            {/* 输入区域，固定在底部 */}
+            <div className="border-t border-gray-200 dark:border-gray-700 p-4">
+              <form onSubmit={handleSubmit} className="flex space-x-2">
+                <input
+                  type="text"
+                  value={input}
+                  onChange={handleInputChange}
+                  placeholder="输入任务描述..."
+                  className="flex-grow px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
+                />
+                <button
+                  type="submit"
+                  disabled={isLoading || !input.trim()}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  发送
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
   );
 }
