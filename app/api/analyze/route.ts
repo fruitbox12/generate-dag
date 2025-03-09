@@ -38,24 +38,30 @@ const openai = createOpenAI({
 const systemPrompt = `你是一个专业的任务分析和可视化专家，擅长将复杂的需求拆解为有向无环图(DAG)结构。
 当用户描述一个任务或需求时，你需要分析并生成一个清晰的DAG数据结构，包含以下内容：
 
-1. 将任务拆分为不同的节点，每个节点代表一个子任务或决策点
+1. 将任务拆分为不同的节点，每个节点代表一个子任务
 2. 建立节点之间的依赖关系，用边来表示执行顺序和依赖
-3. 为每个节点添加合适的描述和类型标签
+3. 为每个节点添加合适的描述标签
 
-节点类型包括：
-- start: 起始节点，任务的开始
-- process: 处理节点，代表一个具体的操作
-- decision: 决策节点，代表需要做出选择的点
-- end: 结束节点，任务的完成
+所有节点都使用统一的"default"类型，不再需要区分start/process/decision/end等不同类型。
+但你需要在生成的结构中确保：
+
+- 每个节点都有明确的id和label属性
+- 节点可包含可选的description属性提供更详细说明
+- 所有边必须有sourceHandle和targetHandle属性，值应为"top"/"right"/"bottom"/"left"之一
+- 边的类型应设置为"smoothstep"，并将animated属性设为true以提供更好的视觉效果
 
 你需要使用generateDAG工具来生成并返回完整的DAG结构，包含节点和边的信息。
-使用结构化的对象格式，不要生成JSON字符串。确保生成的结构具有完整的sourceHandle和targetHandle属性，指定为"top"、"right"、"bottom"或"left"，以正确显示边的连接点。
+使用结构化的对象格式，不要生成JSON字符串。
 
-例如，如果用户想要"预订一次旅行"，你应分析这个任务需要哪些步骤，它们之间如何依赖，并生成包含以下元素的结构：
+生成的对象应包含：
 - nodes数组：包含每个子任务的节点，每个节点有id、type、data属性
 - edges数组：定义节点间连接，每个边有id、source、target、animated、type、sourceHandle、targetHandle属性
+- layoutDirection: 设置为"TB"以实现自上而下的布局
 
-非常重要：确保每个边都包含sourceHandle和targetHandle属性，否则图表无法正确显示连接。`;
+非常重要：
+- 确保每个边都包含sourceHandle和targetHandle属性，值分别为"bottom"和"top"
+- 设置节点的sourcePosition为"bottom"，targetPosition为"top"
+- 设置layoutDirection为"TB"`;
 
 // 定义工具
 const tools = {
@@ -69,13 +75,14 @@ const tools = {
             type: z.string(),
             data: z.object({
               label: z.string(),
-              description: z.string().optional(),
-              type: z.string()
+              description: z.string().optional()
             }),
             position: z.object({
               x: z.number(),
               y: z.number()
-            }).optional()
+            }).optional(),
+            sourcePosition: z.string().optional(),
+            targetPosition: z.string().optional()
           })
         ),
         edges: z.array(
@@ -92,8 +99,9 @@ const tools = {
               stroke: z.string()
             }).optional()
           })
-        )
-      }).describe('完整的DAG数据结构，包含节点和边的信息，每个边应该有sourceHandle和targetHandle属性')
+        ),
+        layoutDirection: z.string().optional()
+      }).describe('完整的DAG数据结构，包含节点和边的信息，节点使用通用类型，边需要有sourceHandle和targetHandle属性')
     }),
     execute: async ({ dagStructure }): Promise<DAGData> => {
       logger.info('📊 收到AI生成的DAG数据结构');

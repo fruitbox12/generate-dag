@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "^1.2.1",
+    "@dagrejs/dagre": "^1.1.4",
+    "@types/dagre": "^0.7.52",
     "@xyflow/react": "^12.4.4",
     "ai": "^4.1.54",
     "next": "15.2.1",

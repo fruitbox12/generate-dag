@@ -3,14 +3,6 @@
  * 用于在前后端之间共享一致的模型定义
  */
 
-// 节点类型枚举，用于标识不同类型的节点
-export enum NodeType {
-  START = 'start',
-  PROCESS = 'process',
-  DECISION = 'decision',
-  END = 'end'
-}
-
 // 边类型枚举，用于标识不同类型的连接线
 export enum EdgeType {
   DEFAULT = 'default',
@@ -27,6 +19,14 @@ export enum HandlePosition {
   LEFT = 'left'
 }
 
+// 布局方向枚举
+export enum LayoutDirection {
+  TOP_TO_BOTTOM = 'TB',  // 自上而下
+  LEFT_TO_RIGHT = 'LR',  // 从左到右
+  BOTTOM_TO_TOP = 'BT',  // 自下而上
+  RIGHT_TO_LEFT = 'RL'   // 从右到左
+}
+
 // 节点数据接口，定义节点的结构
 export interface DAGNode {
   id: string;
@@ -34,13 +34,15 @@ export interface DAGNode {
   data: {
     label: string;
     description?: string;
-    type: NodeType | string;
   };
   // 可选的位置信息，如果有具体坐标可以提供
   position?: {
     x: number;
     y: number;
   };
+  // 连接点位置，用于控制边的连接点
+  sourcePosition?: HandlePosition;
+  targetPosition?: HandlePosition;
 }
 
 // 边接口，定义连接线的结构
@@ -64,6 +66,8 @@ export interface DAGEdge {
 export interface DAGData {
   nodes: DAGNode[];
   edges: DAGEdge[];
+  // 布局方向，默认自上而下
+  layoutDirection?: LayoutDirection;
 }
 
 /**
@@ -75,22 +79,27 @@ export function createDefaultDAG(): DAGData {
     nodes: [
       {
         id: 'start',
-        type: 'custom',
-        data: { label: '开始任务', type: NodeType.START },
+        type: 'default',
+        data: { label: '开始任务' },
+        sourcePosition: HandlePosition.BOTTOM,
+        targetPosition: HandlePosition.TOP
       },
       {
         id: 'process',
-        type: 'custom',
+        type: 'default',
         data: { 
           label: '处理任务', 
-          description: '处理用户请求',
-          type: NodeType.PROCESS,
+          description: '处理用户请求'
         },
+        sourcePosition: HandlePosition.BOTTOM,
+        targetPosition: HandlePosition.TOP
       },
       {
         id: 'end',
-        type: 'custom',
-        data: { label: '完成任务', type: NodeType.END },
+        type: 'default',
+        data: { label: '完成任务' },
+        sourcePosition: HandlePosition.BOTTOM,
+        targetPosition: HandlePosition.TOP
       },
     ],
     edges: [
@@ -113,5 +122,6 @@ export function createDefaultDAG(): DAGData {
         targetHandle: HandlePosition.TOP,
       },
     ],
+    layoutDirection: LayoutDirection.TOP_TO_BOTTOM
   };
 } 
