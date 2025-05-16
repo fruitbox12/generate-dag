@@ -47,7 +47,7 @@ export default function Home() {
   // 使用useChat钩子，处理聊天和工具调用
   const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
     api: '/api/analyze',
-    initialInput: '帮我定一下3月15号的机票',
+    initialInput: 'Please help me book a flight for March 15.',
     onFinish: (message) => {
       // 处理工具调用结果
       logger.info(`📨 消息完成: ${message.id}`);
@@ -114,10 +114,9 @@ export default function Home() {
                 <svg className="w-16 h-16 mb-4 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>
-                <p className="text-center font-medium mb-2">请输入任务描述，生成DAG可视化</p>
+                <p className="text-center font-medium mb-2">Please enter a task description to generate a DAG visualization.</p>
                 <p className="text-sm text-center text-gray-400 dark:text-gray-500 max-w-md">
-                  在右侧聊天框中描述你的任务需求，AI将为你生成任务依赖图
-                </p>
+                Describe your task requirements in the chat box on the right, and the AI will generate a task dependency graph for you                </p>
               </div>
             )}
           </div>
@@ -150,7 +149,7 @@ export default function Home() {
                     <div className="font-semibold text-xs mb-1 flex items-center">
                       {message.role === 'user' ? (
                         <span className="flex items-center">
-                          <span className="mr-1">👤</span> 用户
+                          <span className="mr-1">👤</span> User
                         </span> 
                       ) : (
                         <span className="flex items-center">
@@ -163,7 +162,16 @@ export default function Home() {
                     {/* 更紧凑的消息详情 */}
                     {message.role === 'assistant' && (
                       <details className="mt-2 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900 p-1.5 rounded">
-                        <summary className="cursor-pointer hover:text-blue-500 transition-colors duration-200">消息详情</summary>
+                        <summary className="cursor-pointer hover:text-blue-500 transition-colors duration-200">Message Details
+
+
+
+
+
+
+
+
+</summary>
                         <div className="mt-1 max-h-40 overflow-y-auto">
                           <pre className="text-xs whitespace-pre-wrap bg-gray-100 dark:bg-gray-700 p-2 rounded">
                             {JSON.stringify(message, null, 2)}
@@ -194,7 +202,15 @@ export default function Home() {
                   type="text"
                   value={input}
                   onChange={handleInputChange}
-                  placeholder="输入任务描述..."
+                  placeholder="Enter task description
+
+
+
+
+
+
+
+..."
                   className="flex-grow px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white transition-all duration-200"
                 />
                 <button
@@ -202,7 +218,7 @@ export default function Home() {
                   disabled={isLoading || !input.trim()}
                   className="px-5 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex items-center"
                 >
-                  <span>发送</span>
+                  <span>Send</span>
                   <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                   </svg>

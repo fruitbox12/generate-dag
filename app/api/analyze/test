@@ -14,10 +14,6 @@ import {
   HandlePosition,
   LayoutDirection,
 } from '../../models/dag';
-// put near the top of route.ts
-function idBase(id: string | undefined) {
-  return id?.split('_')[0]?.toLowerCase() ?? '';
-}
 
 /* ─── Runtime-cached node catalog ──────────────────────────────────────────── */
 type NodeMeta = { name: string; label: string; type: string };
@@ -145,14 +141,14 @@ const tools = {
       const catalog = await getNodeCatalog();
 
       /* 1️⃣  Validate first node */
-      const firstId   = dagStructure.nodes[0]?.id;
-      const firstBase = idBase(firstId);
-      const first     = catalog.find((n) => n.name.toLowerCase() === firstBase);
-      
+      const firstId = dagStructure.nodes[0]?.id;
+      const first   =
+        catalog.find((n) => n.name === firstId || n.label === firstId) ?? null;
+
       if (!first || !START_NODE_TYPES.has(first.type)) {
-         logger.error('❌ First node invalid, sending fallback DAG');
-         return createDefaultDAG();
-       }
+        logger.error('❌ First node invalid, sending fallback DAG');
+        return createDefaultDAG();
+      }
 
       /* 2️⃣  Sanitize nodes */
       const cleanedNodes = dagStructure.nodes.map((n, i) => ({

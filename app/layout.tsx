@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 
-// 使用Inter字体，包含更多字符集以支持中文
+// Use Inter font, including more subsets to support broader character sets
 const inter = Inter({ 
   subsets: ["latin"],
   display: 'swap',
@@ -10,8 +10,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "任务 DAG 可视化与聊天工具",
-  description: "使用Vercel AI SDK生成和可视化任务DAG（有向无环图）并提供智能聊天功能",
+  title: "Task DAG Visualization and Chat Tool",
+  description: "Generate and visualize task DAGs (Directed Acyclic Graphs) using Vercel AI SDK with intelligent chat features",
   icons: {
     icon: '/favicon.ico',
   },
@@ -23,7 +23,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN" className={inter.variable}>
+    <html lang="en" className={inter.variable}>
       <body className={`${inter.className} bg-gray-50 dark:bg-gray-900 min-h-screen overflow-hidden antialiased`}>
         <div className="flex flex-col h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-gray-100 via-gray-50 to-gray-100 dark:from-gray-800 dark:via-gray-900 dark:to-gray-800">
           {children}
